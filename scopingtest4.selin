@@ -1,0 +1,16 @@
+(setf x 3)  ;we have a global variable x, with value 3
+
+(let ((x 7))
+    ;this is another scope
+    ;another x is defined here, with value 7
+
+    (defun increment-x ()
+        (setf x (+ x 1))  ;direct access to global x
+    )
+
+    (increment-x)
+
+    (print x)  ;prints 7, this non-global x is not changed
+)
+
+(print x) ;prints 4. the function accessed this x.

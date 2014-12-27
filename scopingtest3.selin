@@ -1,0 +1,14 @@
+; -*- mode: Lisp;-*-
+
+(setq selin-scoping 'global)
+
+(setq x 0)
+
+(defun f1 ()
+  (let ((x 10))
+    (f2)))
+
+(defext f2 ()
+  (print x))
+
+(f1)

@@ -1,0 +1,19 @@
+; -*- mode:Lisp; -*-
+
+(defun ask-for-error ()
+    (princ "What kind of error would you like to raise? ")
+    (setf errtype (read))
+    (signal errtype "this is an error")
+)
+
+(condition-case err
+    (ask-for-error)
+    (parse-error
+        (princ "I could not parse")
+    )
+    (error
+        (princ err)
+    )
+)
+
+(princ "\n")

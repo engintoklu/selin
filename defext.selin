@@ -1,0 +1,11 @@
+(defext unless ($condition $action)
+    (if (not (eval $condition))
+        (eval $action)
+    )
+)
+
+(setf x (read-number "Please enter a non-negative number:"))
+
+(unless (< x 0)
+    (print "Thank you")
+)

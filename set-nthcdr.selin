@@ -1,0 +1,5 @@
+(let ((a (list 1 2 3 4))
+      (b (list 'x 'y 'z)))
+  (print a)  ; prints (1 2 3 4)
+  (set-nthcdr 2 a b)
+  (print a)) ; prints (1 2 x y z)

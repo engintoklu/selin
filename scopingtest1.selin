@@ -1,0 +1,14 @@
+; -*- mode: Lisp;-*-
+
+(setq selin-scoping 'dynamic)
+
+(setq x 0)
+
+(defun f1 ()
+  (let ((x 10))
+    (f2)))
+
+(defun f2 ()
+  (print x))
+
+(f1)
