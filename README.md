@@ -549,8 +549,9 @@ own scope.
 With dynamic scoping, the example above would
 print 8 and 3, instead of 7 and 4.
 If you want to have this behavior in selin,
-you can write `(setf selin-scoping 'dynamic)`.
-With this configuration, the functions in selin
+you can write `(setf selin-scoping 'dynamic)`
+before defining your functions.
+With this configuration, the functions you define
 will work with dynamic scoping rules.
 By default, the value of `selin-scoping` is `global`.
 Since GNU Emacs version 24.1, Emacs Lisp optionally
@@ -672,7 +673,7 @@ See the example below:
             (print "I caught my-error2")
         )
         (error
-            (print "I will catch any type of error which is not handled above")
+            (print "I catch any type of error which is not handled above")
         )
     )
 
