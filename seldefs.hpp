@@ -1881,12 +1881,17 @@ namespace selin
                 unpack1("length", args, sequence);
                 sequence = caller->evaluate(sequence);
 
+                if (sequence.is_null())
+                {
+                    return objrefnew<LispNumber>(0);
+                }
+
                 Ref<LispObject> result;
 
                 std::string t;
                 t = type_of(sequence);
 
-                if (t == "cons")
+                if (t == LispNode::type_name)
                 {
                     Ref<LispNode> c = sequence.as<LispNode>();
 
@@ -1897,19 +1902,19 @@ namespace selin
                     }
                     result = objrefnew<LispNumber>(n);
                 }
-                else if (t == "vector")
+                else if (t == LispVector::type_name)
                 {
                     Ref<LispVector> v = sequence.as<LispVector>();
                     result = objrefnew<LispNumber>(v->size());
                 }
-                else if (t == "string")
+                else if (t == LispString::type_name)
                 {
                     Ref<LispString> s = sequence.as<LispString>();
                     result = objrefnew<LispNumber>(s->get_value().size());
                 }
                 else
                 {
-                    raise_error(LispError::s_wrong_type_argument, "'length' expects objects of these types: cons, vector, string");
+                    raise_error(LispError::s_wrong_type_argument, "length: as the first argument, nil or an object of one of the types cons, string or vector was expected; but something else was received.");
                 }
 
                 return result;
