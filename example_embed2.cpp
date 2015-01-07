@@ -1,6 +1,11 @@
 #include <iostream>
 #include "selin.hpp"
 
+// this is a longer version of example_embed1.cpp
+// this longer version can also be a useful example
+// because it contains data type casting
+// within its code
+
 // selin.hpp provides and uses a reference-counting
 // pointer class template called Ref<>.
 using selin::Ref;
@@ -14,14 +19,12 @@ Ref<selin::LispObject> sum(Ref<selin::LispNode> args)
          arg.is_not_null();
          arg = arg->cdr())  // cdr() gets next node
     {
-        Ref<selin::LispObject> o;
-        o = arg->car(); // car() gets the object stored by the node
+        Ref<selin::LispObject> obj;
+        obj = arg->car(); // car() gets the object stored by the node
 
-        if (selin::type_of(o) == "number")
+        if (selin::type_of(obj) == "number")
         {
-            double x;
-            x = selin::as_number(o);
-            result += x;
+            result += selin::as_number(obj);
         }
     }
 

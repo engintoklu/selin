@@ -1,4 +1,4 @@
-// Copyright (c) 2014, Nihat Engin Toklu < http://github.com/engintoklu >
+// Copyright (c) 2014, 2015, Nihat Engin Toklu < http://github.com/engintoklu >
 //
 // This software is provided 'as-is', without any express or implied
 // warranty. In no event will the authors be held liable for any damages
@@ -19,6 +19,7 @@
 //    3. This notice may not be removed or altered from any source
 //    distribution.
 
+// TODO: implement LispVector::iterator
 // TODO: documentation is missing about optional parameters and throw-catch.
 // TODO: test if it works correctly with SELIN_STRING_USE_BOOST
 // TODO: defun, defext, and lambda must create a deep copy of the actions list
@@ -80,6 +81,7 @@ namespace selin
 #include <vector>
 #include <map>
 #include <cmath>
+#include <iterator>
 
 namespace selin
 {
@@ -103,6 +105,12 @@ namespace selin
     const char scoping_configuration_variable_name[] = "selin-scoping";
 
     class LispException;
+    void raise_error(std::string errtype, std::string msg) throw(Ref<LispException>);
+    void raise_args_out_of_range(std::string msg) throw(Ref<LispException>);
+    void raise_wrong_type_argument(std::string msg) throw(Ref<LispException>);
+    void raise_parse_error(std::string msg) throw(Ref<LispException>);
+    void raise_unfinished_expression_error(std::string msg = "Missing ')'") throw(Ref<LispException>);
+
 
     class LispObject : public Collectable
     {
@@ -381,9 +389,159 @@ namespace selin
             }
         }
         #endif
+
+    private:
+
+        // iterator of LispNode
+        // --------------------
+        class node_holder
+        {
+        protected:
+            typedef LispNode* nodeptr;
+            typedef Ref<LispNode> noderef;
+            typedef Ref<LispObject> objectref;
+            Ref<LispNode> node;
+
+        public:
+            Ref<LispObject> &operator*()
+            {
+                return node->storage;
+            }
+
+            CRef<LispObject> operator*() const
+            {
+                CRef<LispNode> cnode(node);
+                return cnode->car();
+            }
+        };
+
+        class const_node_holder
+        {
+        protected:
+            typedef const LispNode* nodeptr;
+            typedef CRef<LispNode> noderef;
+            typedef CRef<LispObject> objectref;
+            CRef<LispNode> node;
+
+        public:
+            CRef<LispObject> operator*() const
+            {
+                return node->car();
+            }
+        };
+
+        template <typename HolderT>
+        class forward_iterator_tmpl :
+            public HolderT,
+            public std::iterator<Ref<LispObject>, std::forward_iterator_tag>
+        {
+            void visit_next_node()
+                throw(Ref<LispException>)
+            {
+                if (HolderT::node.is_null())
+                {
+                    raise_args_out_of_range("the iterator can not proceed further");
+                }
+
+                HolderT::node = (HolderT::node)->cdr();
+            }
+
+        public:
+            forward_iterator_tmpl() {}
+            forward_iterator_tmpl(typename HolderT::nodeptr n) { HolderT::node = typename HolderT::noderef(n); }
+            forward_iterator_tmpl(typename HolderT::noderef n) : HolderT::node(n) {}
+            forward_iterator_tmpl(const forward_iterator_tmpl &other)
+            {
+                HolderT::node = other.node;
+            }
+
+            forward_iterator_tmpl(typename HolderT::objectref o)
+                throw(Ref<LispException>)
+            {
+                if (o.is_not_null())
+                {
+                    if (type_of(o) == LispNode::type_name)
+                    {
+                        Ref<LispNode> no(o.template as<LispNode>());
+                        HolderT::node = no;
+                    }
+                    else
+                    {
+                        raise_wrong_type_argument("tried to iterate over a non-iterable object");
+                    }
+                }
+            }
+
+            forward_iterator_tmpl &operator++()
+                throw(Ref<LispException>)
+            {
+                visit_next_node();
+                return *this;
+            }
+
+            forward_iterator_tmpl operator++(int)
+                throw(Ref<LispException>)
+            {
+                forward_iterator_tmpl mycopy(*this);
+                visit_next_node();
+                return mycopy;
+            }
+
+            bool operator==(const forward_iterator_tmpl &other) const
+            {
+                return HolderT::node.get_pointer() == other.node.get_pointer();
+            }
+
+            bool operator!=(const forward_iterator_tmpl &other) const
+            {
+                return HolderT::node.get_pointer() != other.node.get_pointer();
+            }
+        };
+    public:
+
+        typedef forward_iterator_tmpl<node_holder> forward_iterator;
+        typedef forward_iterator_tmpl<const_node_holder> const_forward_iterator;
+
+        typedef forward_iterator iterator;
+        typedef const_forward_iterator const_iterator;
+        // ----------------
+
+        forward_iterator begin()
+        {
+            forward_iterator it(this);
+            return it;
+        }
+
+        forward_iterator end()
+        {
+            forward_iterator it;
+            return it;
+        }
+
+        const_forward_iterator cbegin() const
+        {
+            const_forward_iterator it(this);
+            return it;
+        }
+
+        const_forward_iterator cend() const
+        {
+            const_forward_iterator it;
+            return it;
+        }
+
+        const_forward_iterator begin() const
+        {
+            return cbegin();
+        }
+
+        const_forward_iterator end() const
+        {
+            return cend();
+        }
+
     };
     const char *LispNode::type_name = "cons";
-
 
     template<typename T>
     Ref<LispObject> objrefnew()
@@ -1049,20 +1207,32 @@ namespace selin
     const char *LispError::s_value_error = "value-error";
     const char *LispError::s_stdin_error = "stdin-error";
 
-    void raise_error(std::string errtype, std::string msg) throw(Ref<LispException>)
+    void raise_error(std::string errtype, std::string msg)
+        throw(Ref<LispException>)
     {
         Ref<LispError> err(new LispError(errtype, msg));
         throw err.as<LispException>();
     }
 
-    void raise_parse_error(std::string msg) throw(Ref<LispException>)
+    void raise_args_out_of_range(std::string msg)
+        throw(Ref<LispException>)
     {
-        std::string errtype = LispError::s_parse_error;
-        Ref<LispError> err(new LispError(errtype, msg));
-        throw err.as<LispException>();
+        raise_error(LispError::s_args_out_of_range, msg);
     }
 
-    void raise_unfinished_expression_error(std::string msg = "Missing ')'")
+    void raise_wrong_type_argument(std::string msg)
+        throw(Ref<LispException>)
+    {
+        raise_error(LispError::s_wrong_type_argument, msg);
+    }
+
+    void raise_parse_error(std::string msg)
+        throw(Ref<LispException>)
+    {
+        raise_error(LispError::s_parse_error, msg);
+    }
+
+    void raise_unfinished_expression_error(std::string msg)
         throw(Ref<LispException>)
     {
         std::string errtype = LispError::s_parse_error;
@@ -2256,6 +2426,86 @@ namespace selin
         return (s == LispT::type_name);
     }
 
+    bool is_string(CRef<LispObject> o)
+    {
+        return type_matches<LispString>(o);
+    }
+
+    bool is_symbol(CRef<LispObject> o)
+    {
+        return type_matches<LispSymbol>(o);
+    }
+
+    bool is_list(CRef<LispObject> o)
+    {
+        if (o.is_null()) return true;
+        return type_matches<LispNode>(o);
+    }
+
+    bool is_vector(CRef<LispObject> o)
+    {
+        return type_matches<LispVector>(o);
+    }
+
+    bool is_error(CRef<LispObject> o)
+    {
+        return type_matches<LispError>(o);
+    }
+
+    bool is_request(CRef<LispObject> o)
+    {
+        return type_matches<LispRequest>(o);
+    }
+
+    Ref<LispObject> create_number_object(double x)
+    {
+        return objrefnew<LispNumber>(x);
+    }
+
+    Ref<LispObject> create_string_object(std::string s)
+    {
+        return objrefnew<LispString>(s);
+    }
+
+    Ref<LispObject> create_symbol_object(std::string s)
+    {
+        return objrefnew<LispSymbol>(s);
+    }
+
+    template <typename Iterable>
+    Ref<LispObject> create_list_object(Iterable &sequence)
+    {
+        NodesCreator nc;
+        for (typename Iterable::iterator it = sequence.begin();
+             it != sequence.end();
+             ++it)
+        {
+            nc.push_back(*it);
+        }
+
+        Ref<LispNode> node(nc.get_first_node());
+        Ref<LispObject> result(node.as<LispObject>());
+        return result;
+    }
+
+    template <typename Iterable>
+    Ref<LispObject> create_vector_object(Iterable &sequence)
+    {
+        Ref<LispVector> vec(new LispVector());
+
+        vec->reserve(sequence.size());
+
+        for (typename Iterable::iterator it = sequence.begin();
+             it != sequence.end();
+             ++it)
+        {
+            vec->push_back(*it);
+        }
+
+        Ref<LispObject> result(vec.as<LispObject>());
+        return result;
+    }
+
     class NonConstUniversalIteratorTypes
     {
     public:
@@ -2482,6 +2732,7 @@ namespace selin
     const char *LispNativeCallable<TF>::type_name = "callable";
 
 
+    // =========================================================
     template <>
     class LispNativeCallable<LispCallbackTypes::nativefunc0> : public LispCallable
     {
@@ -2658,6 +2909,7 @@ namespace selin
 
     };
     const char *LispNativeCallable<LispCallbackTypes::vnativefunc2>::type_name = "callable";
+    // =========================================================
 
 
 

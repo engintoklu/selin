@@ -1,4 +1,4 @@
-// Copyright (c) 2014, Nihat Engin Toklu < http://github.com/engintoklu >
+// Copyright (c) 2014, 2015, Nihat Engin Toklu < http://github.com/engintoklu >
 //
 // This software is provided 'as-is', without any express or implied
 // warranty. In no event will the authors be held liable for any damages

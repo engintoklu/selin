@@ -1,7 +1,7 @@
 
 # selin - a minimalist Lisp dialect for scripting
 
-Nihat Engin Toklu < http://github.com/engintoklu >, 2014
+Nihat Engin Toklu < http://github.com/engintoklu >, 2014, 2015
 
 ## What is selin
 
@@ -789,33 +789,34 @@ sum of all the numeric arguments it receives:
 
     Ref<selin::LispObject> sum(Ref<selin::LispNode> args)
     {
+        int count = 0;
         double result = 0;
 
         // we iterate over all the argument nodes:
-        for (Ref<selin::LispNode> arg = args;
-             arg.is_not_null();
-             arg = arg->cdr())  // cdr() gets next node
+        for (selin::LispNode::iterator it = args->begin();
+             it != args->end();
+             ++it)
         {
-            Ref<selin::LispObject> o;
-            o = arg->car(); // car() gets the object stored by the node
+            Ref<selin::LispObject> obj(*it);
 
-            if (selin::type_of(o) == "number")
+            // Below, we are testing if the object is number
+            // by using selin::is_number(obj)
+            // also, we could use:
+            //  selin::is_string(obj) if we wanted to check if it is a string
+            //  selin::is_list(obj) if we wanted to check if it a list
+            //  selin::is_symbol(obj) if we wanted to check if it is a symbol
+            //  selin::is_vector(obj) if we wanted to check if it is a vector
+            if (selin::is_number(obj))
             {
-                double x;
-                x = selin::as_number(o);
-                result += x;
+                result += selin::as_number(obj);
             }
         }
 
-        // we have the result
-        // now we create a lisp number object holding that result:
-        Ref<selin::LispNumber> n(new selin::LispNumber(result));
-
-        // now we cast it into an object:
-        Ref<selin::LispObject> o(n.as<selin::LispObject>());
-
-        // finally, return the result:
-        return o;
+        return selin::create_number_object(result);
+        // we could use selin::create_string_object("...")
+        // if we wanted to create a string object,
+        // and, similarly, selin::create_symbol_object("...")
+        // if we wanted to create a symbol object
     }
 
     int main()
@@ -826,6 +827,7 @@ sum of all the numeric arguments it receives:
 
         return 0;
     }
+
 
 You can also use `set_native_callable` with pointers
 to your C++ functor objects:
@@ -864,7 +866,7 @@ to your C++ functor objects:
 
 The license terms of selin are as follows:
 
-    Copyright (c) 2014, Nihat Engin Toklu < http://github.com/engintoklu >
+    Copyright (c) 2014, 2015, Nihat Engin Toklu < http://github.com/engintoklu >
 
     This software is provided 'as-is', without any express or implied
     warranty. In no event will the authors be held liable for any damages
