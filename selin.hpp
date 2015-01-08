@@ -2506,7 +2506,7 @@ namespace selin
         return result;
     }
 
-    class NonConstUniversalIteratorTypes
+    class NonConstUniversalTraverserTypes
     {
     public:
         typedef Ref<LispObject> RefObject;
@@ -2514,7 +2514,7 @@ namespace selin
         typedef Ref<LispVector> RefVector;
     };
 
-    class ConstUniversalIteratorTypes
+    class ConstUniversalTraverserTypes
     {
     public:
         typedef CRef<LispObject> RefObject;
@@ -2523,10 +2523,10 @@ namespace selin
     };
 
     template <typename Types>
-    class UniversalIteratorT
+    class UniversalTraverserT
     {
-        UniversalIteratorT &operator=(const UniversalIteratorT &other);
-        UniversalIteratorT (const UniversalIteratorT &other);
+        UniversalTraverserT &operator=(const UniversalTraverserT &other);
+        UniversalTraverserT (const UniversalTraverserT &other);
 
         typename Types::RefObject sequence;
         bool finished;
@@ -2544,7 +2544,8 @@ namespace selin
                 || (typo == LispVector::type_name);
         }
 
-        UniversalIteratorT(typename Types::RefObject o)
+    private:
+        void initialize(typename Types::RefObject o)
             throw(Ref<LispException>)
         {
             if (o.is_null())
@@ -2573,6 +2574,13 @@ namespace selin
             {
                 raise_error(LispError::s_wrong_type_argument, "Can only iterate over a list or a vector");
             }
+        }
+
+    public:
+        UniversalTraverserT(typename Types::RefObject o)
+            throw(Ref<LispException>)
+        {
+            initialize(o);
         }
 
         bool has_more() const
@@ -2607,8 +2615,8 @@ namespace selin
             return result;
         }
     };
-    typedef UniversalIteratorT<NonConstUniversalIteratorTypes> UniversalIterator;
-    typedef UniversalIteratorT<ConstUniversalIteratorTypes> CUniversalIterator;
+    typedef UniversalTraverserT<NonConstUniversalTraverserTypes> UniversalTraverser;
+    typedef UniversalTraverserT<ConstUniversalTraverserTypes> CUniversalTraverser;
 
 
     std::string as_short_string(CRef<LispObject> o,
@@ -2620,7 +2628,7 @@ namespace selin
             return "...";
         }
 
-        if (CUniversalIterator::can_iterate_over(o))
+        if (CUniversalTraverser::can_iterate_over(o))
         {
             std::string typo(type_of(o));
             std::string beginning, ending;
@@ -2644,7 +2652,7 @@ namespace selin
 
             result = beginning;
 
-            CUniversalIterator it(o);
+            CUniversalTraverser it(o);
 
             for (size_t i = 0;
                  i <= max_elements && it.has_more();
@@ -2664,7 +2672,7 @@ namespace selin
                     CRef<LispObject> element;
                     element = it.get_next();
 
-                    if (CUniversalIterator::can_iterate_over(element))
+                    if (CUniversalTraverser::can_iterate_over(element))
                     {
                         result += as_short_string(element, max_elements, max_depth - 1);
                     }

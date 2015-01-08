@@ -1358,7 +1358,7 @@ namespace selin
                         }
                         else if (arg->get_type() == "cons" || arg->get_type() == "vector")
                         {
-                            UniversalIterator it(arg);
+                            UniversalTraverser it(arg);
                             while (it.has_more())
                             {
                                 all_objects.push_back(it.get_next());
@@ -2471,7 +2471,7 @@ namespace selin
                 }
 
 
-                UniversalIterator it(seq);
+                UniversalTraverser it(seq);
                 std::list< Ref<LispObject> > objs;
 
                 while (it.has_more())
@@ -2567,7 +2567,7 @@ namespace selin
                     return Ref<LispObject>(NULL);
                 }
 
-                if (!(UniversalIterator::can_iterate_over(o_lst)))
+                if (!(UniversalTraverser::can_iterate_over(o_lst)))
                 {
                     raise_error(LispError::s_wrong_type_argument, "dolist: expected an iterable object as the second element in the first argument, but received something else.");
                 }
@@ -2579,7 +2579,7 @@ namespace selin
                 Ref<LispObject> result;
                 try
                 {
-                    UniversalIterator it(o_lst);
+                    UniversalTraverser it(o_lst);
                     Scope scope(caller);
                     while (it.has_more())
                     {
