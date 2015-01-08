@@ -2382,8 +2382,10 @@ namespace selin
                 std::stringstream result;
 
                 result << to_string() << std::endl;
+                result << "(read)" << std::endl;
+                result << "  reads and returns a selin object from the standard input" << std::endl;
                 result << "(read s)" << std::endl;
-                result << "  reads a selin object from the standard input. The argument s optional, which is printed to the screen if provided.";
+                result << "  reads and returns a selin object from the string s";
 
                 return result.str();
             }
