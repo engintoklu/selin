@@ -860,7 +860,7 @@ namespace selin
     class LispVector : public LispObject
     {
     private:
-        mutable std::vector< Ref<LispObject> > elements;
+        std::vector< Ref<LispObject> > elements;
 
     public:
         static const char *type_name;
@@ -873,7 +873,7 @@ namespace selin
         {
             std::string result = "[";
 
-            std::vector< Ref<LispObject> >::iterator it;
+            std::vector< Ref<LispObject> >::const_iterator it;
             for (it = elements.begin(); it != elements.end(); it++)
             {
                 if (it != elements.begin())
@@ -908,8 +908,8 @@ namespace selin
                 return false;
             }
 
-            std::vector< Ref<LispObject> >::iterator it1;
-            std::vector< Ref<LispObject> >::iterator it2;
+            std::vector< Ref<LispObject> >::const_iterator it1;
+            std::vector< Ref<LispObject> >::const_iterator it2;
             for (it1 = elements.begin(), it2 = vec->elements.begin();
                  it1 != elements.end(); it1++, it2++)
             {

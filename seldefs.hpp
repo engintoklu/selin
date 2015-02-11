@@ -1245,8 +1245,8 @@ namespace selin
                 std::stringstream result;
 
                 result << to_string() << std::endl;
-                result << "(funcall f)" << std::endl;
-                result << "  calls the function object referenced by the variable f";
+                result << "(funcall f arg1 arg2 ...)" << std::endl;
+                result << "  calls the function object referenced by the variable f, with the specified arguments";
                 return result.str();
             }
         };
@@ -3784,8 +3784,8 @@ namespace selin
             { // apply
                 std::stringstream ss;
                 ss << "(defun apply ($f $args)"
-                   << "  \"(apply f arg1 arg2 ...)\""
-                   << "  \"  calls the callable object f with the specified arguments\""
+                   << "  \"(apply f arglist)\""
+                   << "  \"  calls the callable object f. The arguments to f are expected within the list arglist.\""
                    << "  (setq $f (get-callable-object $f))"
                    << "  (eval (concatenate 'list (list 'funcall $f) $args)))";
                 main_scope.evaluate(strreplace<std::string>(ss.str(), "$", "$apply-"));
