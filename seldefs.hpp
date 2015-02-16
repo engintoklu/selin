@@ -1252,6 +1252,94 @@ namespace selin
         };
 
 
+        class FunctionApplier : public LispCallable
+        {
+        public:
+
+            virtual Ref<LispObject> execute(Scope *caller, Ref<LispNode> args)
+                throw(Ref<LispException>)
+            {
+                if (args.is_null())
+                {
+                    raise_error(LispError::s_wrong_number_of_arguments, "apply: expected at least one argument");
+                }
+
+                Ref<LispObject> funcobj;
+                Ref<LispCallable> func;
+
+                funcobj = caller->evaluate(args->car());
+
+                if (type_of(funcobj) == LispCallable::type_name)
+                {
+                    func = funcobj.as<LispCallable>();
+                }
+                else if (type_of(funcobj) == LispSymbol::type_name)
+                {
+                    Variable *v;
+                    Ref<LispSymbol> sym;
+
+                    sym = funcobj.as<LispSymbol>();
+                    v = caller->get_callable(sym->get_value());
+                    if (!v)
+                    {
+                        raise_error(LispError::s_void_function, "apply: could not find a callable object with the name " + sym->get_value());
+                    }
+
+                    if (!(v->is_callable()))
+                    {
+                        raise_error(LispError::s_wrong_type_argument, "apply: the symbol does not point to a callable object");
+                    }
+
+                    func = v->get_value().as<LispCallable>();
+                }
+                else
+                {
+                    raise_error(LispError::s_wrong_type_argument, "apply: expected a callable or a symbol as argument");
+                }
+
+                args = args->cdr();
+                Ref<LispObject> o_arglist;
+                Ref<LispNode> arglist;
+
+                if (args.is_not_null())
+                {
+                    o_arglist = args->car();
+                    o_arglist = caller->evaluate(o_arglist);
+                    arglist = cast_or_complain<LispNode>(o_arglist, "apply: the second argument was expected to be a list, but something else was received");
+                }
+
+                // make a new list: quoted_arglist,
+                // in which each argument in arglist exists quoted.
+                NodesCreator quoted_arglist;
+                for (Ref<LispNode> current_arg = arglist;
+                     current_arg.is_not_null();
+                     current_arg = current_arg->cdr())
+                {
+                    Ref<LispObject> o;
+                    o = current_arg->car();
+                    o = quote_object(o);
+                    quoted_arglist.push_back(o);
+                }
+
+                // arglist was already evaluated here.
+                // sending quoted_arglist's first node here
+                // prevents those arguments from being double-evaluated.
+                return func->execute(caller, quoted_arglist.get_first_node());
+            }
+
+            virtual std::string to_repr_string() const
+            {
+                std::stringstream result;
+
+                result << to_string() << std::endl;
+                result << "(apply f arglist)" << std::endl;
+                result << "  calls the function object referenced by the variable f, with the arguments stored within the list arglist.";
+                return result.str();
+            }
+        };
+
+
+
         class AndOperator : public LispCallable
         {
         public:
@@ -3581,6 +3669,7 @@ namespace selin
 
             main_scope.set_callable("function", objrefnew<FunctionAccessor>());
             main_scope.set_callable("funcall", objrefnew<FunctionCaller>());
+            main_scope.set_callable("apply", objrefnew<FunctionApplier>());
 
             main_scope.set_callable("set", objrefnew<Setter>());
             main_scope.set_callable("setq", objrefnew<Setter>(false));
@@ -3780,17 +3869,6 @@ namespace selin
                    << "    $result))";
                 main_scope.evaluate(strreplace<std::string>(ss.str(), "$", "$reduce-"));
             }
-
-            { // apply
-                std::stringstream ss;
-                ss << "(defun apply ($f $args)"
-                   << "  \"(apply f arglist)\""
-                   << "  \"  calls the callable object f. The arguments to f are expected within the list arglist.\""
-                   << "  (setq $f (get-callable-object $f))"
-                   << "  (eval (concatenate 'list (list 'funcall $f) $args)))";
-                main_scope.evaluate(strreplace<std::string>(ss.str(), "$", "$apply-"));
-            }
-
 
             { // mapcar
                 std::stringstream ss;
