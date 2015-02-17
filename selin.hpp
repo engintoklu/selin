@@ -1495,6 +1495,10 @@ namespace selin
         {
             raise_error(LispError::s_parse_error, "Empty token encountered");
         }
+        else if (token == ".")
+        {
+            raise_error(LispError::s_parse_error, "The dot(.) syntax is not supported");
+        }
         else if (token[0] == '\"')
         {
             std::string sub = token.substr(1, token.size() - 2);
