@@ -3786,7 +3786,7 @@ namespace selin
                    << "    (dolist ($x $arg)"
                    << "      (push $x $result))"
                    << "    (if (vectorp $arg)"
-                   << "        (eval (cons 'vector $result))"
+                   << "        (apply 'vector $result)"
                    << "      $result)))";
                 main_scope.evaluate(strreplace<std::string>(ss.str(), "$", "$reverse-"));
             }
@@ -3817,7 +3817,7 @@ namespace selin
                    << "        (while (< $n $j)"
                    << "          (push (elt $a $n) $result)"
                    << "          (setq $n (+ $n 1)))"
-                   << "        (eval (cons 'vector (reverse $result)))))"
+                   << "        (apply 'vector (reverse $result))))"
                    << "    (t (signal 'wrong-type-argument \"subseq expects string, list or vector as its first argument\"))))";
 
                 main_scope.evaluate(strreplace<std::string>(ss.str(), "$", "$subseq-"));
