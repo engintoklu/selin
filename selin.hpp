@@ -1153,6 +1153,7 @@ namespace selin
         static const char *s_void_function;
         static const char *s_value_error;
         static const char *s_stdin_error;
+        static const char *s_file_error;
 
     private:
         std::string errtype;
@@ -1206,6 +1207,7 @@ namespace selin
     const char *LispError::s_void_function = "void-function";
     const char *LispError::s_value_error = "value-error";
     const char *LispError::s_stdin_error = "stdin-error";
+    const char *LispError::s_file_error = "file-error";
 
     void raise_error(std::string errtype, std::string msg)
         throw(Ref<LispException>)
@@ -2248,6 +2250,11 @@ namespace selin
             std::ifstream f(s.c_str());
             std::string lisp_code = "";
             std::string line;
+
+            if (!(f.is_open()))
+            {
+                raise_error(LispError::s_file_error, std::string("can not open file: ") + s);
+            }
 
             while (std::getline(f, line))
             {
