@@ -4103,7 +4103,7 @@ namespace selin
 
             main_scope.evaluate("(defext progn (&rest $progn-actions) \"(progn action1 action2 ...)\" \"  executes all the specified action and returns the evaluation result of the last executed action\" (eval (list 'cond (cons t $progn-actions))))");
 
-            main_scope.evaluate("(defext if ($if-condition $if-then &optional $if-otherwise) \"(if condition action)\" \"  if condition is non-nil (i.e. true), evaluates action and returns the result; otherwise returns nil.\" \"(if condition action otherwise-action)\" \"  if condition is non-nil (i.e. true), evaluates action and returns the result; otherwise, evaluates otherwise-action and returns its result.\" (cond ((eval $if-condition) (eval $if-then)) (t (eval $if-otherwise))) )");
+            main_scope.evaluate("(defext if ($if-condition $if-then &rest $if-otherwise) \"(if condition action)\" \"  if condition is non-nil (i.e. true), evaluates action and returns the result; otherwise returns nil.\" \"(if condition action otherwise-action1 otherwise-action2...)\" \"  if condition is non-nil (i.e. true), evaluates action and returns the result; otherwise, evaluates otherwise-actions and returns the result.\" (cond ((eval $if-condition) (eval $if-then)) (t (eval (cons 'progn $if-otherwise)))) )");
 
             main_scope.evaluate("(defext when ($when-condition &rest $when-actions) \"(when condition action1 action2 ...)\" \"  if condition is non-nil (i.e. true), executes all the actions and returns the result of the last action; otherwise, returns nil\" (if (eval $when-condition) (eval (cons 'progn $when-actions))))");
 

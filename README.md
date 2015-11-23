@@ -399,6 +399,15 @@ based on some conditions:
     )
     ;outputs: "this is the else part."
 
+The "else" part of the `if` statement can contain
+multiple commands:
+
+    (if (> x 7)
+        (print "x is bigger than 7")
+      (print "this is the else part.")
+      (print "this means that x is not bigger than 7")
+    )
+
 `progn` is a command which evaluates all its arguments
 and returns the latest evaluation result.
 
@@ -410,7 +419,7 @@ and returns the latest evaluation result.
     ; prints "hey" and then "hello", and returns 3
 
 You can use `progn` to do more than one thing
-in the "then" part or the "else" part of `if`:
+in the "then" part of `if`:
 
     (setf x (read-number "Enter a number:"))
 
@@ -419,10 +428,8 @@ in the "then" part or the "else" part of `if`:
             (print "this is a positive number")
             (print "sign: +")
         )
-      (progn
-          (print "this is the else part")
-          (print "the number is not positive")
-      )
+      (print "this is the else part")
+      (print "the number is not positive")
     )
 
 For handling multiple conditions, you can use `cond`
