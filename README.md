@@ -250,7 +250,9 @@ In the memory, a list is represented by list nodes,
 each node storing the element value
 and also pointing to the next node, as follows:
 
-    [ 1 | *-]--> [ 2 | *-]--> [ 3 | nil ]
+    =-------=      =-------=      =---------=
+    | 1 | *-|----> | 2 | *-|----> | 3 | nil |
+    =-------=      =-------=      =---------=
       ^   ^
       |   |
       |   \--- pointer to the next node
