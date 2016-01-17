@@ -1,4 +1,4 @@
-// Copyright (c) 2014, 2015, Nihat Engin Toklu < http://github.com/engintoklu >
+// Copyright (c) 2014-2016, Nihat Engin Toklu < http://github.com/engintoklu >
 //
 // This software is provided 'as-is', without any express or implied
 // warranty. In no event will the authors be held liable for any damages
@@ -299,86 +299,33 @@ namespace selin
 
         };
 
-
         class NumericOperation : public LispCallable
         {
             char opr;
-            double init_value;
 
         public:
-            NumericOperation(char opr_code)
-            {
-                opr = opr_code;
-
-                if (opr == '+')
-                {
-                    init_value = 0;
-                }
-                else if (opr == '-')
-                {
-                    init_value = 0;
-                }
-                else if (opr == '*')
-                {
-                    init_value = 1;
-                }
-                else if (opr == '/')
-                {
-                    init_value = 1;
-                }
-                else if (opr == '&')
-                {
-                    init_value = double(bitwise_calc_int(-1));
-                }
-                else if (opr == '|')
-                {
-                    init_value = 0;
-                }
-
-            }
+            NumericOperation(char opr_code): opr(opr_code) {}
 
             virtual Ref<LispObject> execute(Scope *caller, Ref<LispNode> args)
                 throw(Ref<LispException>)
             {
                 args = caller->evaluate_nodes(args);
 
+                Ref<LispObject> o_a, o_b;
+                double a, b;
                 double result;
-                result = init_value;
 
-                bool first_arg = true;
+                unpack2("<BasicNumericOperation>", args, o_a, o_b);
 
-                Ref<LispNode> current_node;
-                for (current_node = args;
-                    current_node.is_not_null();
-                    current_node = current_node->cdr())
-                {
-                    if (is_number(current_node->car()))
-                    {
-                        Ref<LispNumber> n;
-                        n = current_node->car().as<LispNumber>();
+                a = as_number(o_a);
+                b = as_number(o_b);
 
-                        if (first_arg)
-                        {
-                            first_arg = false;
-                            result = n->get_value();
-                        }
-                        else
-                        {
-
-                            if (opr == '+') result += n->get_value();
-                            else if (opr == '-') result -= n->get_value();
-                            else if (opr == '*') result *= n->get_value();
-                            else if (opr == '/') result /= n->get_value();
-                            else if (opr == '&') result = nearest_bitwise_calc_int(result) & nearest_bitwise_calc_int(n->get_value());
-                            else if (opr == '|') result = nearest_bitwise_calc_int(result) | nearest_bitwise_calc_int(n->get_value());
-                        }
-                    }
-                    else
-                    {
-                        raise_error(LispError::s_wrong_type_argument, "Expected a number but got: "
-                            + as_repr_string(current_node->car()));
-                    }
-                }
+                if (opr == '+') result = a + b;
+                else if (opr == '-') result = a - b;
+                else if (opr == '*') result = a * b;
+                else if (opr == '/') result = a / b;
+                else if (opr == '&') result = nearest_bitwise_calc_int(a) & nearest_bitwise_calc_int(b);
+                else if (opr == '|') result = nearest_bitwise_calc_int(a) | nearest_bitwise_calc_int(b);
 
                 return objrefnew<LispNumber>(result);
             }
@@ -410,14 +357,13 @@ namespace selin
                 }
 
                 result << to_string() << std::endl;
-                result << "(" << opr << " numeric-arg1 numeric-arg2 numeric-arg3 ... )" << std::endl;
-                result << "  applies the " << oprdesc << " operation on the arguments";
+                result << "(" << opr << " a b)" << std::endl;
+                result << "  applies the " << oprdesc << " operation on the 2 numeric arguments, then returns the result";
 
                 return result.str();
             }
 
         };
-
 
        class NotOperator : public LispCallable
        {
@@ -3621,12 +3567,12 @@ namespace selin
             main_scope.set_callable("quote", objrefnew<Quote>());
             main_scope.set_callable("cons", objrefnew<ConsOperation>());
 
-            main_scope.set_callable("+", objrefnew<NumericOperation>('+'));
-            main_scope.set_callable("-", objrefnew<NumericOperation>('-'));
-            main_scope.set_callable("*", objrefnew<NumericOperation>('*'));
-            main_scope.set_callable("/", objrefnew<NumericOperation>('/'));
-            main_scope.set_callable("logand", objrefnew<NumericOperation>('&'));
-            main_scope.set_callable("logior", objrefnew<NumericOperation>('|'));
+            main_scope.set_callable("__+", objrefnew<NumericOperation>('+'));
+            main_scope.set_callable("__-", objrefnew<NumericOperation>('-'));
+            main_scope.set_callable("__*", objrefnew<NumericOperation>('*'));
+            main_scope.set_callable("__/", objrefnew<NumericOperation>('/'));
+            main_scope.set_callable("__logand", objrefnew<NumericOperation>('&'));
+            main_scope.set_callable("__logior", objrefnew<NumericOperation>('|'));
 
             main_scope.set_callable("=",  objrefnew< ValueComparison<double, LispNumber> >("=", "number"));
             main_scope.set_callable("/=", objrefnew< ValueComparison<double, LispNumber> >("/=", "number"));
@@ -3868,6 +3814,108 @@ namespace selin
                    << "      (setq $result (funcall $f $result (pop $list))))"
                    << "    $result))";
                 main_scope.evaluate(strreplace<std::string>(ss.str(), "$", "$reduce-"));
+            }
+
+            { // +
+                std::stringstream ss;
+                ss << "(defun + (&rest $args)"
+                   << "  \"(+ numericarg1 numericarg2 ...)\""
+                   << "  \"  returns the addition of the given numeric arguments\""
+                   << "  (reduce '__+ (cons 0 $args)))";
+                main_scope.evaluate(strreplace<std::string>(ss.str(), "$", "$+_"));
+            }
+
+            { // *
+                std::stringstream ss;
+                ss << "(defun * (&rest $args)"
+                   << "  \"(* numericarg1 numericarg2 ...)\""
+                   << "  \"  returns the multiplication of the given numeric arguments\""
+                   << "  (reduce '__* (cons 0 $args)))";
+                main_scope.evaluate(strreplace<std::string>(ss.str(), "$", "$*_"));
+            }
+
+            { // logand
+                std::stringstream ss;
+                ss << "(defun logand (&rest $args)"
+                   << "  \"(logand numericarg1 numericarg2 ...)\""
+                   << "  \"  returns the result of applying the bitwise-and operation on the given numeric arguments\""
+                   << "  (reduce '__logand (cons -1 $args)))";
+                main_scope.evaluate(strreplace<std::string>(ss.str(), "$", "$logand-"));
+            }
+
+            { // logior
+                std::stringstream ss;
+                ss << "(defun logior (&rest $args)"
+                   << "  \"(logior numericarg1 numericarg2 ...)\""
+                   << "  \"  returns the result of applying the bitwise-or operation on the given numeric arguments\""
+                   << "  (reduce '__logior (cons 0 $args)))";
+                main_scope.evaluate(strreplace<std::string>(ss.str(), "$", "$logior-"));
+            }
+
+            { // -
+                std::stringstream ss;
+                ss << "(defun - (&rest $args)"
+                   << "  \"applies the subtraction operation on the given numeric arguments and returns the result.\""
+                   << "  \"  (- x) returns -x\""
+                   << "  \"  (- n1 n2 n3 ...) returns n1 - n2 - n3 - ...\""
+                   << "  (let (($result nil)"
+                   << "        ($firstarg (pop $args)))"
+                   << "    (if $args"
+                   << "        (progn"
+                   << "          (setf $result $firstarg)"
+                   << "          (dolist ($arg $args)"
+                   << "            (setf $result (__- $result $arg))))"
+                   << "      (setf $result (__- 0 $firstarg)))"
+                   << "    $result))";
+                main_scope.evaluate(strreplace<std::string>(ss.str(), "$", "$-_"));
+            }
+
+            { // /
+                std::stringstream ss;
+                ss << "(defun / (&rest $args)"
+                   << "  \"applies the division operation on the given numeric arguments and returns the result.\""
+                   << "  \"  (/ x) returns 1/x\""
+                   << "  \"  (/ n1 n2 n3 ...) returns n1 / n2 / n3 / ...\""
+                   << "  (let (($result nil)"
+                   << "        ($firstarg (pop $args)))"
+                   << "    (if $args"
+                   << "        (progn"
+                   << "          (setf $result $firstarg)"
+                   << "          (dolist ($arg $args)"
+                   << "            (setf $result (__/ $result $arg))))"
+                   << "      (setf $result (__/ 1 $firstarg)))"
+                   << "    $result))";
+                main_scope.evaluate(strreplace<std::string>(ss.str(), "$", "$/_"));
+            }
+
+            { // max
+                std::stringstream ss;
+                ss << "(defun max (&rest $args)"
+                   << "  \"(max numericarg1 numericarg2 ...)\""
+                   << "  \"  returns the maximum among the given numeric arguments\""
+                   << "  (if (not $args)"
+                   << "    (signal 'wrong-number-of-arguments \"'max' expected at least one argument but received none\"))"
+                   << "  (let (($largest (pop $args)))"
+                   << "    (dolist ($arg $args)"
+                   << "      (if (> $arg $largest)"
+                   << "          (setf $largest $arg)))"
+                   << "    $largest))";
+                main_scope.evaluate(strreplace<std::string>(ss.str(), "$", "$max-"));
+            }
+
+            { // min
+                std::stringstream ss;
+                ss << "(defun min (&rest $args)"
+                   << "  \"(min numericarg1 numericarg2 ...)\""
+                   << "  \"  returns the minimum among the given numeric arguments\""
+                   << "  (if (not $args)"
+                   << "    (signal 'wrong-number-of-arguments \"'min' expected at least one argument but received none\"))"
+                   << "  (let (($smallest (pop $args)))"
+                   << "    (dolist ($arg $args)"
+                   << "      (if (< $arg $smallest)"
+                   << "          (setf $smallest $arg)))"
+                   << "    $smallest))";
+                main_scope.evaluate(strreplace<std::string>(ss.str(), "$", "$min-"));
             }
 
             { // mapcar
