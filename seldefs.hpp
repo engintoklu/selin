@@ -416,7 +416,7 @@ namespace selin
 
                 if (args.is_null())
                 {
-                    raise_error(LispError::s_wrong_number_of_arguments, "'=' must have at least one argument");
+                    raise_error(LispError::s_wrong_number_of_arguments, "'" + operation + "' must have at least one argument");
                 }
 
                 args = caller->evaluate_nodes(args);
@@ -3807,12 +3807,18 @@ namespace selin
                    << "  \"    (+ 6 4) 5     -> 10 5\""
                    << "  \"    (+ 10 5)      -> 15\""
                    << "  \"  so, the result would be 15.\""
-                   << "  (setq $f (get-callable-object $f))"
-                   << "  (let (($result (car $list)))"
-                   << "    (setq $list (cdr $list))"
-                   << "    (while $list"
-                   << "      (setq $result (funcall $f $result (pop $list))))"
-                   << "    $result))";
+                   << "  (cond"
+                   << "   ((not $list)"
+                   << "    (funcall $f))"
+                   << "   ((not (cdr $list))"
+                   << "    (car $list))"
+                   << "   (t"
+                   << "    (setq $f (get-callable-object $f))"
+                   << "    (let (($result (car $list)))"
+                   << "      (setq $list (cdr $list))"
+                   << "      (while $list"
+                   << "        (setq $result (funcall $f $result (pop $list))))"
+                   << "      $result))))";
                 main_scope.evaluate(strreplace<std::string>(ss.str(), "$", "$reduce-"));
             }
 
@@ -3830,7 +3836,7 @@ namespace selin
                 ss << "(defun * (&rest $args)"
                    << "  \"(* numericarg1 numericarg2 ...)\""
                    << "  \"  returns the multiplication of the given numeric arguments\""
-                   << "  (reduce '__* (cons 0 $args)))";
+                   << "  (reduce '__* (cons 1 $args)))";
                 main_scope.evaluate(strreplace<std::string>(ss.str(), "$", "$*_"));
             }
 
