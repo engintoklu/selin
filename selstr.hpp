@@ -103,7 +103,7 @@ namespace selin
             init_from_char(c);
         }
 
-        widestring(const string &s) throw()
+        widestring(const std::string &s) throw()
         {
             init_from_char(s.c_str());
         }
@@ -210,7 +210,7 @@ namespace selin
             #ifdef SELIN_STRING_USE_WCHAR_T
             size_t len;
             char *data;
-            string result;
+            std::string result;
 
             len = value.size() * 4 + 1;
             data = new char[len];
@@ -231,12 +231,12 @@ namespace selin
         }
 
         #ifndef SELIN_STRING_USE_CHAR
-        friend bool operator ==(const string &a, const widestring &b);
-        friend bool operator !=(const string &a, const widestring &b);
-        friend bool operator >(const string &a, const widestring &b);
-        friend bool operator <(const string &a, const widestring &b);
-        friend bool operator >=(const string &a, const widestring &b);
-        friend bool operator <=(const string &a, const widestring &b);
+        friend bool operator ==(const std::string &a, const widestring &b);
+        friend bool operator !=(const std::string &a, const widestring &b);
+        friend bool operator >(const std::string &a, const widestring &b);
+        friend bool operator <(const std::string &a, const widestring &b);
+        friend bool operator >=(const std::string &a, const widestring &b);
+        friend bool operator <=(const std::string &a, const widestring &b);
         #endif
 
         friend bool operator ==(const std::basic_string<character> &a, const widestring &b);

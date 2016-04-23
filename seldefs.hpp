@@ -320,13 +320,36 @@ namespace selin
                 a = as_number(o_a);
                 b = as_number(o_b);
 
-                if (opr == '+') result = a + b;
-                else if (opr == '-') result = a - b;
-                else if (opr == '*') result = a * b;
-                else if (opr == '/') result = a / b;
-                else if (opr == '&') result = nearest_bitwise_calc_int(a) & nearest_bitwise_calc_int(b);
-                else if (opr == '|') result = nearest_bitwise_calc_int(a) | nearest_bitwise_calc_int(b);
-
+                if (opr == '+')
+                {
+                    result = a + b;
+                }
+                else if (opr == '-')
+                {
+                    result = a - b;
+                }
+                else if (opr == '*')
+                {
+                    result = a * b;
+                }
+                else if (opr == '/')
+                {
+                    result = a / b;
+                }
+                else if (opr == '&')
+                {
+                    result = nearest_bitwise_calc_int(a) & nearest_bitwise_calc_int(b);
+                }
+                else if (opr == '|')
+                {
+                    result = nearest_bitwise_calc_int(a) | nearest_bitwise_calc_int(b);
+                }
+                else
+                {
+                    raise_error("error", "Internal error: Misconfigured numeric operation (unknown opcode)");
+                    result = 0.0;
+                }
+                
                 return objrefnew<LispNumber>(result);
             }
 
