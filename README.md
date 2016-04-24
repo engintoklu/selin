@@ -1,7 +1,7 @@
 
 # selin - a minimalist Lisp dialect for scripting
 
-Nihat Engin Toklu < http://github.com/engintoklu >, 2014, 2015
+Nihat Engin Toklu < http://github.com/engintoklu >, 2014-2016
 
 ## What is selin
 
@@ -875,7 +875,7 @@ to your C++ functor objects:
 
 The license terms of selin are as follows:
 
-    Copyright (c) 2014, 2015, Nihat Engin Toklu < http://github.com/engintoklu >
+    Copyright (c) 2014-2016, Nihat Engin Toklu < http://github.com/engintoklu >
 
     This software is provided 'as-is', without any express or implied
     warranty. In no event will the authors be held liable for any damages
