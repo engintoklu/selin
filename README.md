@@ -1,7 +1,7 @@
 
 # selin - a minimalist Lisp dialect for scripting
 
-Nihat Engin Toklu < http://github.com/engintoklu >, 2014-2016
+Nihat Engin Toklu < http://github.com/engintoklu >, 2014-2017
 
 ## What is selin
 

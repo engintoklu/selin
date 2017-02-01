@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2016, Nihat Engin Toklu < http://github.com/engintoklu >
+// Copyright (c) 2014-2017, Nihat Engin Toklu < http://github.com/engintoklu >
 //
 // This software is provided 'as-is', without any express or implied
 // warranty. In no event will the authors be held liable for any damages
@@ -2326,6 +2326,8 @@ namespace selin
                     }
 
                     sc.set_local_variable(*it_arguments, lst.as<LispObject>());
+
+                    args = Ref<LispNode>();
                     break;
                 }
                 else
@@ -2355,6 +2357,11 @@ namespace selin
                         args = args->cdr();
                     }
                 }
+            }
+
+            if (args.is_not_null())
+            {
+                raise_error(LispError::s_wrong_number_of_arguments, "Wrong number of arguments for " + name);
             }
 
             Ref<LispObject> result;

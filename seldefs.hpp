@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2016, Nihat Engin Toklu < http://github.com/engintoklu >
+// Copyright (c) 2014-2017, Nihat Engin Toklu < http://github.com/engintoklu >
 //
 // This software is provided 'as-is', without any express or implied
 // warranty. In no event will the authors be held liable for any damages
@@ -349,7 +349,7 @@ namespace selin
                     raise_error("error", "Internal error: Misconfigured numeric operation (unknown opcode)");
                     result = 0.0;
                 }
-                
+
                 return objrefnew<LispNumber>(result);
             }
 
@@ -805,25 +805,23 @@ namespace selin
 
         class Setter : public LispCallable
         {
-            bool evaluate_sym;
+            char setter_type; // 0:set  'q':setq  'f':setf
 
         public:
-            Setter(bool eval_sym)
+            Setter(char type_of_setter)
             {
-                evaluate_sym = eval_sym;
+                setter_type = type_of_setter;
             }
 
             Setter()
             {
-                evaluate_sym = true;
+                setter_type = '\0';
             }
 
             virtual Ref<LispObject> execute(Scope *caller, Ref<LispNode> args)
                 throw(Ref<LispException>)
             {
                 Ref<LispNode> current_arg;
-
-                Ref<LispSymbol> sym;
                 Ref<LispObject> val;
 
                 current_arg = args;
@@ -832,28 +830,75 @@ namespace selin
                     Ref<LispObject> o_sym;
                     o_sym = current_arg->car();
 
-                    if (evaluate_sym)
+                    if (o_sym.is_null())
                     {
-                        o_sym = caller->evaluate(o_sym);
+                        raise_error(LispError::s_value_error, "set: Encountered (). Can not set a value into ().");
                     }
-
-                    if (type_of(o_sym) != LispSymbol::type_name)
+                    else if (setter_type == 'f' && type_of(o_sym) == LispNode::type_name)
                     {
-                        raise_error(LispError::s_wrong_type_argument, "set: expected a symbol but got a "
-                            + type_of(o_sym));
+                        Ref<LispNode> setf_list = o_sym.as<LispNode>();
+
+                        Ref<LispObject> o_setf_list_head = setf_list->car();
+                        if (type_of(o_setf_list_head) != LispSymbol::type_name)
+                        {
+                            raise_error(LispError::s_wrong_type_argument, "first element of the list arguments within setf must be a symbol, not a " + type_of(o_sym));
+                        }
+
+                        std::string setter_cmd = "set-" + o_setf_list_head.as<LispSymbol>()->get_value();
+
+                        Ref<LispNode> new_head(new LispNode());
+                        new_head->setcar(Ref<LispSymbol>(new LispSymbol(setter_cmd)).as<LispObject>());
+                        new_head->setcdr(setf_list->cdr());
+
+                        setf_list = setf_list->cdr();
+
+                        while (true)
+                        {
+                            if (setf_list->cdr().is_null())
+                            {
+                                Ref<LispNode> new_tail(new LispNode());
+
+                                current_arg = current_arg->cdr();
+                                if (current_arg.is_null())
+                                {
+                                    raise_error(LispError::s_value_error, "Unexpected end of list in 'setf'");
+                                }
+
+                                new_tail->setcar(current_arg->car());
+                                setf_list->setcdr(new_tail);
+                                break;
+                            }
+                            setf_list = setf_list->cdr();
+                        }
+
+                        val = caller->evaluate(new_head.as<LispObject>());
                     }
-
-                    sym = o_sym.as<LispSymbol>();
-
-                    current_arg = current_arg->cdr();
-                    if (current_arg.is_null())
+                    else
                     {
-                        raise_error(LispError::s_value_error, "Unexpected end of list in 'setq'");
+                        Ref<LispSymbol> sym;
+
+                        if (setter_type == '\0')
+                        {
+                            o_sym = caller->evaluate(o_sym);
+                        }
+
+                        if (type_of(o_sym) != LispSymbol::type_name)
+                        {
+                            raise_error(LispError::s_wrong_type_argument, "set: expected a symbol but got a "
+                                + type_of(o_sym));
+                        }
+
+                        sym = o_sym.as<LispSymbol>();
+
+                        current_arg = current_arg->cdr();
+                        val = caller->evaluate(current_arg->car());
+                        if (current_arg.is_null())
+                        {
+                            raise_error(LispError::s_value_error, "Unexpected end of list in 'set'");
+                        }
+
+                        caller->set_variable(sym->get_value(), val);
                     }
-
-                    val = caller->evaluate(current_arg->car());
-
-                    caller->set_variable(sym->get_value(), val);
 
                     current_arg = current_arg->cdr();
                 }
@@ -866,14 +911,17 @@ namespace selin
                 std::stringstream result;
                 result << to_string() << std::endl;
                 result << "(set 'x value)" << std::endl;
-                result << "  or" << std::endl;
                 result << "(setq x value)" << std::endl;
                 result << "  assigns the value to the variable x." << std::endl;
                 result << "  if there is a local variable called x in the current scope," << std::endl;
                 result << "  the value is assigned to that variable." << std::endl;
                 result << "  otherwise, a variable x is searched in the parent scopes." << std::endl;
                 result << "  if a variable named x is not found, a global variable is created," << std::endl;
-                result << "  and initialized with the value.";
+                result << "  and initialized with the value." << std::endl;
+                result << "(setf x value)" << std::endl;
+                result << "  same as setq" << std::endl;
+                result << "(setf (x y) value)" << std::endl;
+                result << "  equivalent to (set-x y value)";
                 return result.str();
             }
 
@@ -916,7 +964,7 @@ namespace selin
                 result << "(set-car listnode value)" << std::endl;
                 result << "  assigns value to the listnode." << std::endl;
                 result << std::endl;
-                result << "  For example, let us assume that we have this list named x, by executing the following:" << std::endl;
+                result << "  For example, let us assume that we have this list named x, created as follows:" << std::endl;
                 result << "    (setq x (list 1 4 7))   ;create a list (1 4 7) and assign it to x" << std::endl;
                 result << "  which is represented in the memory as:" << std::endl;
                 result << std::endl;
@@ -929,7 +977,8 @@ namespace selin
                 result << "      |   pointer to the next node" << std::endl;
                 result << "      value stored by the node" << std::endl;
                 result << std::endl;
-                result << "  if we execute (setcar x 8), then the first node [ 1 | * ] is modified as [ 8 | * ]" << std::endl;
+                result << "  if we execute (setcar x 8), the value stored within the first node is modified to 8 from 1" << std::endl;
+                result << "  (i.e. the first node turns into [ 8 | * ] from [ 1 | * ])" << std::endl;
                 result << "  therefore, we now have (8 4 7)";
                 return result.str();
             }
@@ -3640,8 +3689,9 @@ namespace selin
             main_scope.set_callable("funcall", objrefnew<FunctionCaller>());
             main_scope.set_callable("apply", objrefnew<FunctionApplier>());
 
-            main_scope.set_callable("set", objrefnew<Setter>());
-            main_scope.set_callable("setq", objrefnew<Setter>(false));
+            main_scope.set_callable("set", objrefnew<Setter>('\0'));
+            main_scope.set_callable("setq", objrefnew<Setter>('q'));
+            main_scope.set_callable("setf", objrefnew<Setter>('f'));
             main_scope.set_callable("let", objrefnew<LetStatement>(false));
             main_scope.set_callable("let*", objrefnew<LetStatement>(true));
             { //setcar, setcdr
@@ -3662,26 +3712,6 @@ namespace selin
             // by default, selin has global scoping (i.e. all functions work on global namespace)
             main_scope.evaluate(std::string("(setq ") + scoping_configuration_variable_name + std::string(" 'global)"));
             //main_scope.evaluate(std::string("(setq ") + scoping_configuration_variable_name + std::string(" 'dynamic)"));
-
-            {
-                // setf
-                std::stringstream ss;
-                ss << "(defext setf ($a $b)"
-                   << "  \"(setf x y)\""
-                   << "  \"  sets the value y to the variable x, same as setq (see setq).\""
-                   << "  \"(setf (fieldname x arg1 arg2) y)\""
-                   << "  \"is equivalent to calling (set-fieldname x arg1 arg2 y)\""
-                   << "  \"  For example:\""
-                   << "  \"    (setf (car x) y) is equivalent to (set-car x y)\""
-                   << "  \"    (setf (elt x 0) y) is equivalent to (set-elt x 0 y)\""
-                   << "  (cond ((symbolp $a) (eval (list 'setq $a $b)))"
-                   << "        ((listp $a) (if (< (length $a) 2)"
-                   << "                              (signal 'wrong-number-of-arguments \"'setf' expects a list with at least two elements as its first argument\"))"
-                   << "                         (let (($c (string-to-symbol (concat \"set-\" (symbol-to-string (car $a))))) ($d (cdr $a)))"
-                   << "                              (eval (concatenate 'list (list $c) $d (list $b)))))"
-                   << "        (t (signal 'wrong-type-argument \"'setf' expects a list or a symbol as its first argument\"))))";
-                main_scope.evaluate(strreplace<std::string>(ss.str(), "$", "$setf-"));
-            }
 
             { // push
                 //main_scope.evaluate(
